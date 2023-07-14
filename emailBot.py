@@ -1,31 +1,43 @@
 import requests
 from bs4 import BeautifulSoup
 import smtplib
+import time
 
-URL = 'https://www.amazon.ae/Sony-Playstation-Console-Standard-International/dp/B08FC5L3RG/ref=sr_1_2?crid=2BR44AENUBT7V&keywords='
-+'ps5&qid=1689235254&sprefix=ps5%2Caps%2C276&sr=8-2&th=1'
+# URL = 'https://www.amazon.ae/Sony-Playstation-Console-Standard-International/dp/B08FC5L3RG/ref=sr_1_2?keywords=PS5&qid=1689352384&sr=8-2&th=1'
+URL = input('Input the URL of the amazon.ae product you wish to check every day: ')
+comparison_price = input('Input the price at which if the product is lower than it, you would want to be emailed (it will be checked daily): ')
+sender_gmail = input('Input the Gmail you want to send the update with: ')
+sender_password = input('Input the app password of that Gmail to send with: ')
+receiver_gmail = input('Input the Gmail you want to be notified at: ')
+custom_message = input('Input an optional message in the email: ')
+frequency_to_check = int(input('Input the number of days to check: '))
 
-headers = {"User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'}
 
-def get_price():
 
-    page = requests.get(URL, headers= headers)
+def price_comparer():
+    page = requests.get(URL)
     soup = BeautifulSoup(page.content, 'html.parser')
     price_element = soup.find('span', {'class': 'a-price-whole'}).get_text().strip()
     price_number = float(price_element.replace(",", ""))
-    print(price_number)
-    if (price_number < 1400):
+    print('Current price: AED', price_number)
+    if (price_number < float(comparison_price)):
         send_mail()
+        return True
+    return False
 
 def send_mail():
     email = smtplib.SMTP('smtp.gmail.com', 587)
     email.starttls()
     email.ehlo()
-    email.login('#########your_email@gmail.com', '#############your_app_password')
-    email.sendmail('#########your_emailgmail.com', '#########your_email@gmail.com', 'Subject: WOOO THE PS5 IS CHEAP \n\n'
-                   + ' Look up the PS5 on amazon right now!!!\n{URL}')
+    email.login(sender_gmail, sender_password)
+    email.sendmail(sender_gmail, receiver_gmail, 'Subject: The amazon.ae product\'s price is below what you desire! \n\n'
+                   + ' Look up the product on amazon right now!!!\n'+custom_message+'\n'+URL)
     print('price update email sent')
     email.quit()
 
-get_price()
-# utlilze import time.sleep for the loop to keep repeating
+for i in range(0,frequency_to_check):
+    stop_checking = price_comparer()
+    if (stop_checking):
+        break
+    print("Day "+i+" is over")
+    time.sleep(3600*24)
